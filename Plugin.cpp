@@ -32,6 +32,8 @@ bool addPassWithName(FunctionPassManager &FPM, StringRef &passName) {
     FPM.addPass(FlatteningObfuscatorPass());
   } else if (passName == "bogus") {
     FPM.addPass(BogusControlFlowPass());
+  } else if (passName == "string-encryption") {
+    // do nothing, this pass is for ModulePassManager
   } else {
     return false;
   }
@@ -42,6 +44,13 @@ bool addPassWithName(FunctionPassManager &FPM, StringRef &passName) {
 bool addPassWithName(ModulePassManager &MPM, StringRef &passName) {
   if (passName == "string-encryption") {
     MPM.addPass(StringObfuscatorPass());
+  } else if (
+    passName == "substitution" ||
+    passName == "split-basic-blocks" ||
+    passName == "flattening" ||
+    passName == "bogus"
+  ) {
+    // do nonthing, these passes are only for FunctionPassManager
   } else {
     return false;
   }
