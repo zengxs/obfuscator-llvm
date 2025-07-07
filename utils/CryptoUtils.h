@@ -74,6 +74,38 @@ extern ManagedStatic<CryptoUtils> cryptoutils;
 #define ENDIAN_32BITWORD
 #endif
 
+// Support for ARM and AArch64 architectures
+#elif defined(__arm__) || defined(__aarch64__) || defined(_M_ARM) || defined(_M_ARM64)
+
+#if defined(__ARM_BIG_ENDIAN) || defined(__ARMEL__) == 0
+#ifndef ENDIAN_BIG
+#define ENDIAN_BIG
+#endif
+#else
+#ifndef ENDIAN_LITTLE
+#define ENDIAN_LITTLE
+#endif
+#endif
+
+#if defined(__aarch64__) || defined(_M_ARM64) || defined(__ARM_ARCH_ISA_A64)
+#define ENDIAN_64BITWORD
+#else
+#define ENDIAN_32BITWORD
+#endif
+
+#endif
+
+#if !defined(ENDIAN_BIG) && !defined(ENDIAN_LITTLE)
+#if defined(__ARM_ARCH) || defined(__arm) || defined(__aarch64__) || defined(_ARM_) || defined(__ARM_ARCH_ISA_A64)
+#ifndef ENDIAN_LITTLE
+#define ENDIAN_LITTLE
+#endif
+#if defined(__aarch64__) || defined(__ARM_ARCH_ISA_A64)
+#define ENDIAN_64BITWORD
+#else
+#define ENDIAN_32BITWORD
+#endif
+#endif
 #endif
 
 //#if defined(__BIG_ENDIAN__) || defined(_BIG_ENDIAN)
