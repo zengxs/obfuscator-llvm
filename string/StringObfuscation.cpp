@@ -68,25 +68,6 @@ void StringObfuscatorPass::encodeGlobalString(LLVMContext &ctx,
   }
 }
 
-void StringObfuscatorPass::encodeStructString(LLVMContext &ctx,
-                                              GlobalVariable *gv,
-                                              ConstantStruct *cs,
-                                              ConstantDataArray *array,
-                                              unsigned int index) {
-  StringRef ref = array->getAsString();
-  const char *str = ref.data();
-  const unsigned int size = ref.size();
-
-  uint8_t key = llvm::cryptoutils->get_uint8_t();
-  auto encodedArray = encodeStringDataArray(ctx, str, size, key);
-  if (encodedArray != nullptr) {
-    cs->setOperand(index, encodedArray);
-    gv->setConstant(false);
-    this->globalStrings.push_back(
-        GlobalStringVariable(gv, size, index, true, key));
-  }
-}
-
 StringObfuscatorPass::StringObfuscatorPass() {}
 
 bool StringObfuscatorPass::encodeAllStrings(Module &M) {
@@ -98,32 +79,20 @@ bool StringObfuscatorPass::encodeAllStrings(Module &M) {
         || !gv.hasInitializer()                  // unitialized
         || gv.hasExternalLinkage()               // external
         || gv.getSection() == "llvm.metadata") { // Intrinsic Global Variables
-      //|| gv.getSection().find("__objc_methname") != string::npos) { // TODO :
-      // is this necessary ?
       continue;
     }
 
     // Get the variable value
     Constant *initializer = gv.getInitializer();
 
-    // Encode the value and update the variable
-    if (isa<ConstantDataArray>(initializer)) { // Global variable
+    // 只处理 C 风格字符串：initializer 必须是 ConstantDataArray 且 isString()
+    if (isa<ConstantDataArray>(initializer)) {
       auto array = cast<ConstantDataArray>(initializer);
       if (array->isString()) {
         encodeGlobalString(ctx, &gv, array);
       }
-    } else if (isa<ConstantStruct>(initializer)) { // Variable in a struct
-      auto cs = cast<ConstantStruct>(initializer);
-      for (unsigned int i = 0; i < initializer->getNumOperands(); i++) {
-        auto operand = cs->getOperand(i);
-        if (isa<ConstantDataArray>(operand)) {
-          auto array = cast<ConstantDataArray>(operand);
-          if (array->isString()) {
-            encodeStructString(ctx, &gv, cs, array, i);
-          }
-        }
-      }
     }
+    // 其他类型全部跳过，不做处理
   }
 
   return !this->globalStrings.empty();
